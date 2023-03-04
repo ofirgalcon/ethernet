@@ -11,13 +11,22 @@ Table Schema
 ---
 * name - varchar(255) - Name of the Ethernet device
 * device_id - varchar(255) - Device ID
-* device_type - varchar(255) - Ethernet device type
-* driver_installed - boolean - Is driver installed
-* link_speed - varchar(255) - Link speed
-* link_width - varchar(255) - Link width
-* device_name - varchar(255) - Device name
+* BSD_Device_Name - varchar(255) - BSD device name
+* driver - boolean - driver
+* max_link_speed - varchar(255) - Maximum Link speed
+* pcie_link_width - varchar(255) - PCIe Link width
+* pcie_link_speed - varchar(255) - PCIe Device name
+* product_name - varchar(255) - Product name
 * revision_id - varchar(255) - Revision ID
-* slot_name - varchar(255) - Slot name
+* vendor_name - varchar(255) - Vendor name
 * subsystem_id - varchar(255) - Subsystem ID
-* subsystem_vendor_id - varchar(255) - Subsystem vendor ID
+* subsystem_vendor_id - varchar(255) - Subsystem Vendor ID
 * vendor_id - varchar(255) - Vendor ID
+* avb_support - varchar(255) - AVB support
+* usb_device_speed - varchar(255) - USB link speed
+* bus - varchar(255) - Bus
+* mac_address - varchar(255) - MAC address
+* product_id - varchar(255) - Product ID
+* device_type - varchar(255) - Device type
+
+
