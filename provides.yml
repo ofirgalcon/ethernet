@@ -1,0 +1,18 @@
+client_tabs:
+    ethernet-tab:
+        view: ethernet_tab
+        i18n: ethernet.clienttab
+        badge: ethernet-cnt
+listings:
+    ethernet:
+        view: ethernet_listing
+        i18n: ethernet.clienttab
+widgets:
+    ethernet_devices:
+        view: ethernet_devices_widget
+    ethernet_speed:
+        view: ethernet_speed_widget
+reports:
+    ethernet:
+        view: ethernet_report
+        i18n: ethernet.report

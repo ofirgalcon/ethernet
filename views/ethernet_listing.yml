@@ -1,0 +1,21 @@
+i18n_title: ethernet.reporttitle
+not_null_column: name
+table:
+  - column: machine.computer_name
+    i18n_header: listing.computername
+    formatter: clientDetail
+    tab_link: ethernet-tab
+  - column: reportdata.serial_number
+    i18n_header: serial
+  - column: machine.machine_desc
+    i18n_header: description
+  - {i18n_header: username, column: reportdata.long_username}
+  - {i18n_header: ethernet.name, column: ethernet.name}
+  - {i18n_header: ethernet.BSD_Device_Name, column: ethernet.BSD_Device_Name}
+  - {i18n_header: ethernet.bus, column: ethernet.bus}
+  - {i18n_header: ethernet.max_link_speed, column: ethernet.max_link_speed}
+  - {i18n_header: ethernet.mac_address, column: ethernet.mac_address}
+  - {i18n_header: ethernet.vendor_name, column: ethernet.vendor_name}
+  - {i18n_header: listing.checkin, column: reportdata.timestamp, formatter: timestampToMoment}
+
+

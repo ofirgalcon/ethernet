@@ -1,0 +1,9 @@
+type: scrollbox
+widget_id: ethernet_speed-widget
+api_url: /module/ethernet/get_ethernet_speed
+i18n_title: ethernet.speeds
+icon: fa fa-tachometer
+listing_link: /show/listing/ethernet/ethernet
+search_key: max_link_speed
+i18nEmptyResult: ethernet.no_ethernet
+badge: count

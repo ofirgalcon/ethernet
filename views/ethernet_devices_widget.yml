@@ -1,0 +1,9 @@
+type: scrollbox
+widget_id: ethernet_devices-widget
+api_url: /module/ethernet/get_ethernet_devices
+i18n_title: ethernet.devices
+icon: fa-credit-card-alt
+listing_link: /show/listing/ethernet/ethernet
+search_key: name
+i18nEmptyResult: ethernet.no_ethernet
+badge: count

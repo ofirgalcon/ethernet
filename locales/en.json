@@ -1,0 +1,30 @@
+{
+    "clienttab": "Ethernet",
+    "no_ethernet": "No Ethernet Ports",
+    "reporttitle": "Ethernet Report",
+    "ethernet": "Ethernet",
+    "report": "Ethernet Report",
+    "device_id": "Device ID",
+    "name": "Name",
+    "BSD_Device_Name": "Port",
+    "driver": "Driver",
+    "max_link_speed": "Max Link Speed",
+    "pcie_link_speed": "PCIe Link Speed",
+    "pcie_link_width": "PCIe Link Width",
+    "revision_id": "Revision ID",
+    "subsystem_id": "Subsystem ID",
+    "subsystem_vendor_id": "Subsystem Vendor ID",
+    "vendor_id": "Vendor ID",
+    "avb_support": "AVB Support",
+    "bus": "Bus",
+    "mac_address": "MAC Adress",
+    "product_name": "Product Name",
+    "usb_device_speed": "USB Port Speed",
+    "product_id": "Product ID",
+    "vendor_name": "Vendor Name",
+    "device_type": "Device Type",
+    "devices": "Ethernet Devices",
+    "speeds": "Ethernet Speeds"
+}
+
+
