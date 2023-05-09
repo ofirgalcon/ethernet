@@ -1,108 +1,95 @@
-#!/usr/local/munkireport/munkireport-python2
-# Author ofirgalcon based on code by tuxudo
-
-
-## code for v3
-# import re
-
-# string = "ethernet_speed_2500"
-# result = re.search("\d+", string)
-# numeric_part = int(result.group())
-# speed = numeric_part / 1000
-# formatted_speed = "{:.1f} Gb".format(speed)
-# print(formatted_speed)
-
+#!/usr/local/munkireport/munkireport-python3
+'''Author ofirgalcon based on code by tuxudo
+Refactored for python3 by Rick Heil'''
+​
 import re
 import subprocess
 import os
-import plistlib
 import sys
-
+​
 sys.path.insert(0, '/usr/local/munki')
 sys.path.insert(0, '/usr/local/munkireport')
-
+​
+# pylint: disable=E0611,E0401,C0413
 from munkilib import FoundationPlist
-
+# pylint: enable=E0611,E0401,C0413
+​
 def extract_speed(string):
-    result = re.search("\d+", string)
+    '''Calculates the interface speed in Gb/s for the given string'''
+    result = re.search(r"\d+", string)
     numeric_part = int(result.group())
     speed = numeric_part / 1000.0
     if speed.is_integer():
-        formatted_speed = "%d Gb/s" % int(speed)
+        formatted_speed = f"{speed} Gb/s"
     else:
-        formatted_speed = "%.1f Gb/s" % speed
+        formatted_speed = f"{speed:.1f} Gb/s"
     return formatted_speed
-
-def convert_name_speed(speed_string):
-    if speed_string == "USB 10/100/1000 LAN":
+​
+def convert_name_speed(device_name):
+    '''Converts the name of the interface into a speed capability'''
+    result = re.search(r'.*10\/?100\/?1000', device_name)
+    if result is not None:
         return "1 Gb/s"
-    elif speed_string == "USB 10/100/1000LAN":
-        return "1 Gb/s"
-    elif speed_string == "USB 101001000 LAN":
-        return "1 Gb/s"
-    elif speed_string == "USB 10/100 LAN":
+    if device_name == "USB 10/100 LAN":
         return "0.1 Gb/s"
-    else:
-        return ""
-
+​
+    # if the above were not successful, use the below map to manually set speeds
+    link_speed_map = {
+        "Apple AQC107-AFW": "10Gb/s",
+        "Dell Universal Dock D6000": "1 Gb/s",
+        "AX88179A": "1 Gb/s",
+        "Broadcom 57765-B0": "1 Gb/s",
+        "Broadcom 57766-A1": "1 Gb/s",
+        "Broadcom 57765-A0": "1 Gb/s",
+        "Intel 82574L": "1 Gb/s",
+        "Belkin USB-C LAN": "1 Gb/s",
+        "Broadcom 57762-A0": "1 Gb/s",
+        "ALOGIC CH2 Compact Docking Station": "1 Gb/s"
+    }
+​
+    return link_speed_map.get(device_name, "")
+​
 def clean_bus_name(bus_string):
+    '''Cleans up bus names'''
     if bus_string == "spethernet_usb_device":
         return "USB"
-    elif bus_string == "spethernet_pci_device":
+    if bus_string == "spethernet_pci_device":
         return "PCI"
-    else:
-        return bus_string
-
+    # no match - return unformatted string
+    return bus_string
+​
 def convert_vendor_name(vendor_code):
-    if vendor_code == "0x8086":
-        return "Intel"
-    elif vendor_code == "0x14e4":
-        return "Broadcom"
-    elif vendor_code == "0x1d6a":
-        return "Apple Inc."
-    elif vendor_code == "0x1022":
-        return "AMD"
-    elif vendor_code == "0x1002":
-        return "ATI (AMD)"
-    elif vendor_code == "0x1b21":
-        return "ASMedia Technology"
-    elif vendor_code == "0x1af4":
-        return "Red Hat"
-    elif vendor_code == "0x8087":
-        return "Intel"
-    elif vendor_code == "0x10de":
-        return "NVIDIA"
-    elif vendor_code == "0x5143":
-        return "Qualcomm Atheros"
-    elif vendor_code == "0x10ec":
-        return "Realtek Semiconductor"
-    elif vendor_code == "0x13b5":
-        return "Conexant Systems"
-    elif vendor_code == "0x1131":
-        return "SiS"
-    elif vendor_code == "0x168c":
-        return "Atheros Communications"
-    else:
-        return vendor_code
-
-
+    '''Transforms hex vendor codes into human readable vendor names'''
+    vendor_map = {
+        "0x8086": "Intel",
+        "0x14e4": "Broadcom",
+        "0x1d6a": "Apple Inc.",
+        "0x1022": "AMD",
+        "0x1002": "ATI (AMD)",
+        "0x1b21": "ASMedia Technology",
+        "0x1af4": "Red Hat",
+        "0x8087": "Intel",
+        "0x10de": "NVIDIA",
+        "0x5143": "Qualcomm Atheros",
+        "0x10ec": "Realtek Semiconductor",
+        "0x13b5": "Conexant Systems",
+        "0x1131": "SiS",
+        "0x168c": "Atheros Communications"
+    }
+​
+    return vendor_map.get(vendor_code, vendor_code)
+​
 def get_ethernet_info():
-    '''Uses system profiler to get Ethernet info for this machine.'''
+    '''Uses system profiler to get Ethernet info for a machine.'''
     cmd = ['/usr/sbin/system_profiler', 'SPEthernetDataType', '-xml']
-    proc = subprocess.Popen(cmd, shell=False, bufsize=-1,
-                            stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    (output, unused_error) = proc.communicate()
-
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+        out = proc.communicate()
+​
     try:
-        plist = plistlib.readPlistFromString(output)
-        # system_profiler xml is an array
-        sp_dict = plist[0]
-        items = sp_dict['_items']
-        return items
-    except Exception:
+        return FoundationPlist.readPlistFromString(out[0])[0]['_items']
+    except:
         return {}
-
+​
 def flatten_ethernet_info(array, localization):
     '''Un-nest Ethernet devices, return array with objects with relevant keys'''
     out = []
@@ -110,144 +97,102 @@ def flatten_ethernet_info(array, localization):
         # Return nothing if machine doesn't have Ethernet
         if 'Ethernet' in obj and obj['Ethernet'] == "no_hardware":
             return {}
-
+​
         device = {}
         for item in obj:
             # Don't process the bus itself
             if item == '_name' and "ethernet_bus" in obj[item]:
-                continue  
-            elif item == '_items':
-                out = out + flatten_ethernet_info(obj['_items'], localization)
-                
-            elif item == '_name':
-                device['name'] = obj[item]
-                device['max_link_speed'] = convert_name_speed(obj[item])
-            elif item == 'spethernet_device-id':
-                device['device_id'] = obj[item]
-                if obj[item] == "0x1533":
-                    device['max_link_speed'] = "1 Gb/s"
-            elif item == 'spethernet_device_type':
-                try:
-                    device['device_type'] = localization[obj[item]].strip()
-                except Exception:
-                    device['device_type'] = obj[item]
-            elif item == 'spethernet_driver':
-                device['driver'] = obj[item]
-            elif item == 'spethernet_max_link_speed':
-                device['max_link_speed'] = extract_speed(obj[item])
-            elif item == 'spethernet_pcie_link-speed':
-                device['pcie_link_speed'] = obj[item]
-            elif item == 'spethernet_link-speed':
-                device['pcie_link_speed'] = obj[item]
-            elif item == 'spethernet_pcie_link-width':
-                device['pcie_link_width'] = obj[item]
-            elif item == 'spethernet_BSD_Device_Name':
-                device['BSD_Device_Name'] = obj[item]
-            elif item == 'spethernet_BSD_Name':
-                device['BSD_Device_Name'] = obj[item]
-            elif item == 'spethernet_usb_device_speed':
-                device['usb_device_speed'] = obj[item]
-            elif item == 'spethernet_revision-id':
-                device['revision_id'] = obj[item]
-            elif item == 'spethernet_bus':
-                device['bus'] = clean_bus_name(obj[item])
-            elif item == 'spethernet_subsystem-id':
-                device['subsystem_id'] = obj[item]
-            elif item == 'spethernet_subsystem-vendor-id':
-                device['subsystem_vendor_id'] = obj[item]
-            elif item == 'spethernet_vendor-id':
-                device['vendor_id'] = obj[item]
-                device['vendor_name'] = convert_vendor_name(obj[item])
-            elif item == 'spethernet_vendor_name':
-                device['vendor_name'] = obj[item]
-            elif item == 'spethernet_usb_device_speed':
-                device['usb_device_speed'] = obj[item]
-            elif item == 'spethernet_mac_address':
-                device['mac_address'] = obj[item]
-            elif item == 'spusbethernet_mac_address':
-                device['mac_address'] = obj[item]
-            elif item == 'spethernet_SleepProxyCapable':
-                device['mac_address'] = obj[item]
-            elif item == 'spethernet_avb_support':
-                device['avb_support'] = obj[item]
-            elif item == 'spethernet_product-id':
-                device['product_id'] = obj[item]
-
-        if device['name'] == "Apple T1 Controller": 
-            continue
-        elif device['name'] == "Apple T2 Controller": 
-            continue
-        elif device['name'] == "iBridge": 
-            continue
-        elif device['name'] == "iPhone": 
-            continue
-        elif device['name'] == "iPad": 
-            continue
-        elif device['name'] == "Studio Display": 
-            continue
-        elif device['name'] == "USB": 
-            continue
-
-        elif device['name'] == "Apple AQC107-AFW": 
-            device['max_link_speed'] = "10 Gb/s"
-        elif device['name'] == "USB 10/100/1000 LAN": 
-            device['max_link_speed'] = "1 Gb/s"
-        elif device['name'] == "Dell Universal Dock D6000": 
-            device['max_link_speed'] = "1 Gb/s"
-        elif device['name'] == "AX88179A": 
-            device['max_link_speed'] = "1 Gb/s"
-        elif device['name'] == "Broadcom 57765-B0": 
-            device['max_link_speed'] = "1 Gb/s"
-        elif device['name'] == "Broadcom 57766-A1": 
-            device['max_link_speed'] = "1 Gb/s"
-        elif device['name'] == "Broadcom 57765-A0": 
-            device['max_link_speed'] = "1 Gb/s"
-        elif device['name'] == "Intel 82574L": 
-            device['max_link_speed'] = "1 Gb/s"
-        elif device['name'] == "Belkin USB-C LAN": 
-            device['max_link_speed'] = "1 Gb/s"
-        elif device['name'] == "Broadcom 57762-A0": 
-            device['max_link_speed'] = "1 Gb/s"
-        elif device['name'] == "ALOGIC CH2 Compact Docking Station": 
-            device['max_link_speed'] = "1 Gb/s"
-
-        # Only append device if it has a name
-        if 'name' in device:
+                continue
+            match item:
+                case '_items':
+                    out = out + flatten_ethernet_info(obj['_items'], localization)
+                case '_name':
+                    device['name'] = obj[item]
+                case 'spethernet_device-id':
+                    device['device_id'] = obj[item]
+                case 'spethernet_device_type':
+                    try:
+                        device['device_type'] = localization[obj[item]].strip()
+                    except KeyError:
+                        device['device_type'] = obj[item]
+                case 'spethernet_driver':
+                    device['driver'] = obj[item]
+                case 'spethernet_max_link_speed':
+                    device['max_link_speed'] = extract_speed(obj[item])
+                case 'spethernet_pcie_link-speed':
+                    device['pcie_link_speed'] = obj[item]
+                case 'spethernet_link-speed':
+                    device['pcie_link_speed'] = obj[item]
+                case 'spethernet_pcie_link-width':
+                    device['pcie_link_width'] = obj[item]
+                case 'spethernet_BSD_Device_Name':
+                    device['BSD_Device_Name'] = obj[item]
+                case 'spethernet_BSD_Name':
+                    device['BSD_Device_Name'] = obj[item]
+                case 'spethernet_usb_device_speed':
+                    device['usb_device_speed'] = obj[item]
+                case 'spethernet_revision-id':
+                    device['revision_id'] = obj[item]
+                case 'spethernet_bus':
+                    device['bus'] = clean_bus_name(obj[item])
+                case 'spethernet_subsystem-id':
+                    device['subsystem_id'] = obj[item]
+                case 'spethernet_subsystem-vendor-id':
+                    device['subsystem_vendor_id'] = obj[item]
+                case 'spethernet_vendor-id':
+                    device['vendor_id'] = obj[item]
+                    device['vendor_name'] = convert_vendor_name(obj[item])
+                case 'spethernet_vendor_name':
+                    device['vendor_name'] = obj[item]
+                case 'spethernet_usb_device_speed':
+                    device['usb_device_speed'] = obj[item]
+                case 'spethernet_mac_address':
+                    device['mac_address'] = obj[item]
+                case 'spusbethernet_mac_address':
+                    device['mac_address'] = obj[item]
+                case 'spethernet_SleepProxyCapable':
+                    device['mac_address'] = obj[item]
+                case 'spethernet_avb_support':
+                    device['avb_support'] = obj[item]
+                case 'spethernet_product-id':
+                    device['product_id'] = obj[item]
+​
+        # generate speed estimates - first by device ID, then name
+        if 'device_id' in device:
+            if device['device_id'] == "0x1533":
+                device['max_link_speed'] = "1 Gb/s"
+        else:
+            device['max_link_speed'] = convert_name_speed(device['name'])
+​
+        ignore_list = ["Apple T1 Controller", "Apple T2 Controller", "iBridge", "iPhone", "iPad", "Studio Display", "USB"]
+        # Only append devices with valid names not on the ignore list
+        if 'name' in device and device['name'] not in ignore_list:
             out.append(device)
-            
+​
     return out
-
-def to_bool(s):
-    if s == True or s == 1 or s == "TRUE" or s == "Yes":
-        return 1
-    else:
-        return 0 
-
+​
 def main():
-    """Main"""
-
-    # Set the encoding
-    reload(sys)
-    sys.setdefaultencoding('utf8')
-
+    '''Main function'''
+​
     # Read in English localizations from SystemProfiler
+    # pylint: disable=C0301
     if os.path.isfile('/System/Library/SystemProfiler/SPEthernetReporter.spreporter/Contents/Resources/en.lproj/Localizable.strings'):
-        localization = FoundationPlist.readPlist('/System/Library/SystemProfiler/SPEthernetReporter.spreporter/Contents/Resources/en.lproj/Localizable.strings')
+        localization = FoundationPlist.readPlist('/System/Library/SystemProfiler/SPEthernetReporter.spreporter/Contents/Resources/en.lproj/Localizable.strings').decode('utf-8')
     elif os.path.isfile('/System/Library/SystemProfiler/SPEthernetReporter.spreporter/Contents/Resources/English.lproj/Localizable.strings'):
-        localization = FoundationPlist.readPlist('/System/Library/SystemProfiler/SPEthernetReporter.spreporter/Contents/Resources/English.lproj/Localizable.strings')
+        localization = FoundationPlist.readPlist('/System/Library/SystemProfiler/SPEthernetReporter.spreporter/Contents/Resources/English.lproj/Localizable.strings').decode('utf-8')
     else:
         localization = {}
-
+    #pylint: enable=C0301
+​
     # Get results
-    result = dict()
+    result = {}
     info = get_ethernet_info()
     result = flatten_ethernet_info(info, localization)
-
+​
     # Write ethernet results to cache
-    cachedir = '%s/cache' % os.path.dirname(os.path.realpath(__file__))
+    cachedir = f'{os.path.dirname(os.path.realpath(__file__))}/cache'
     output_plist = os.path.join(cachedir, 'ethernet.plist')
-    plistlib.writePlist(result, output_plist)
-#    print plistlib.writePlistToString(result)
-
+    FoundationPlist.writePlist(result, output_plist)
+​
 if __name__ == "__main__":
     main()
