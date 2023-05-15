@@ -20,7 +20,7 @@ def extract_speed(string):
     numeric_part = int(result.group())
     speed = numeric_part / 1000.0
     if speed.is_integer():
-        formatted_speed = f"{speed} Gb/s"
+        formatted_speed = f"{speed:.4g} Gb/s"
     else:
         formatted_speed = f"{speed:.1f} Gb/s"
     return formatted_speed
